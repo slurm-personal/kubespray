@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kube-scheduler
+  namespace: kube-system
+  labels:
+    k8s-app: kube-scheduler
+  annotations:
+    kubespray.scheduler-cert/serial: "{{ scheduler_cert_serial }}"
+spec:
+  hostNetwork: true
+  dnsPolicy: ClusterFirst
+  priorityClassName: system-node-critical
+  containers:
+  - name: kube-scheduler
+    image: {{ kube_scheduler_image_repo }}:{{ kube_scheduler_image_tag }}
+    imagePullPolicy: {{ k8s_image_pull_policy }}
+    resources:
+      limits:
+        cpu: {{ kube_scheduler_cpu_limit }}
+        memory: {{ kube_scheduler_memory_limit }}
+      requests:
+        cpu: {{ kube_scheduler_cpu_requests }}
+        memory: {{ kube_scheduler_memory_requests }}
+    command:
+    - kube-scheduler
+    - --authentication-kubeconfig={{ kube_config_dir }}/kube-scheduler-kubeconfig.yaml
+    - --authorization-kubeconfig={{ kube_config_dir }}/kube-scheduler-kubeconfig.yaml
+    - --leader-elect=true
+{% if kube_version is version('v1.19.0', '>=') %}
+    - --config={{ kube_config_dir }}/kubescheduler-config.yaml
+{% endif %}
+    - --kubeconfig={{ kube_config_dir }}/kube-scheduler-kubeconfig.yaml
+    - --profiling={{ kube_profiling }}
+    - --v={{ kube_log_level }}
+{% if kube_feature_gates %}
+    - --feature-gates={{ kube_feature_gates|join(',') }}
+{% endif %}
+{% if scheduler_custom_flags is string %}
+    - {{ scheduler_custom_flags }}
+{% else %}
+{%   for flag in scheduler_custom_flags %}
+    - {{ flag }}
+{%   endfor %}
+{% endif %}
+    livenessProbe:
+      httpGet:
+        host: 127.0.0.1
+        path: /healthz
+        port: 10251
+      initialDelaySeconds: 30
+      timeoutSeconds: 10
+    volumeMounts:
+    - mountPath: /etc/ssl
+      name: ssl-certs-host
+      readOnly: true
+{% for dir in ssl_ca_dirs %}
+    - mountPath: {{ dir }}
+      name: {{ dir | regex_replace('^/(.*)$', '\\1' ) | regex_replace('/', '-') }}
+      readOnly: true
+{% endfor %}
+    - mountPath: "{{ kube_config_dir }}/ssl"
+      name: etc-kube-ssl
+      readOnly: true
+    - mountPath: "{{ kube_config_dir }}/kube-scheduler-kubeconfig.yaml"
+      name: kubeconfig
+      readOnly: true
+{% if kube_version is version('v.1.19.0', '>=') %}
+    - mountPath: "{{ kube_config_dir }}/kubescheduler-config.yaml"
+      name: kubescheduler-config
+      readOnly: true
+{% endif %}
+  volumes:
+  - name: ssl-certs-host
+    hostPath:
+      path: /etc/ssl
+{% for dir in ssl_ca_dirs %}
+  - name: {{ dir | regex_replace('^/(.*)$', '\\1' ) | regex_replace('/', '-') }}
+    hostPath:
+      path: {{ dir }}
+{% endfor %}
+  - name: etc-kube-ssl
+    hostPath:
+      path: "{{ kube_config_dir }}/ssl"
+  - name: kubeconfig
+    hostPath:
+      path: "{{ kube_config_dir }}/kube-scheduler-kubeconfig.yaml"
+{% if kube_version is version('v.1.19.0', '>=') %}
+  - name: kubescheduler-config
+    hostPath:
+      path: "{{ kube_config_dir }}/kubescheduler-config.yaml"
+{% endif %}
