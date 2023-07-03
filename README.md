@@ -33,7 +33,7 @@ Ansible v2.7.0 is failing and/or produce unexpected results due to [ansible/ansi
 
 ```ShellSession
 # Install dependencies from ``requirements.txt``
-sudo pip install -r requirements.txt
+sudo pip3 install -r requirements.txt
 
 # Copy ``inventory/sample`` as ``inventory/mycluster``
 cp -rfp inventory/sample inventory/mycluster
@@ -53,7 +53,7 @@ cat inventory/mycluster/group_vars/k8s_cluster/k8s-cluster.yml
 ansible-playbook -i inventory/mycluster/hosts.yaml  --become --become-user=root cluster.yml
 ```
 
-Note: When Ansible is already installed via system packages on the control machine, other python packages installed via `sudo pip install -r requirements.txt` will go to a different directory tree (e.g. `/usr/local/lib/python2.7/dist-packages` on Ubuntu) from Ansible's (e.g. `/usr/lib/python2.7/dist-packages/ansible` still on Ubuntu).
+Note: When Ansible is already installed via system packages on the control machine, other python packages installed via `sudo pip3 install -r requirements.txt` will go to a different directory tree (e.g. `/usr/local/lib/python2.7/dist-packages` on Ubuntu) from Ansible's (e.g. `/usr/lib/python2.7/dist-packages/ansible` still on Ubuntu).
 As a consequence, `ansible-playbook` command will fail with:
 
 ```raw
@@ -90,7 +90,7 @@ If this returns the version of the software, you're good to go. If not, download
 Install the necessary requirements
 
 ```ShellSession
-sudo pip install -r requirements.txt
+sudo pip3 install -r requirements.txt
 vagrant up
 ```
 
